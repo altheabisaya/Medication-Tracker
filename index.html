@@ -263,7 +263,6 @@ html,body{font-family:var(--font);background:var(--bg);color:var(--text);height:
       <button class="fab" id="fab-btn" aria-label="Add medication">+</button>
       <nav class="bottom-nav">
         <button class="nav-btn active" onclick="switchTab('home')"><span>🏠</span><span>Home</span></button>
-        <button class="nav-btn" onclick="switchTab('schedule')"><span>📅</span><span>Schedule</span></button>
         <button class="nav-btn" onclick="switchTab('history')"><span>📊</span><span>History</span></button>
         <button class="nav-btn" onclick="switchTab('settings')"><span>⚙️</span><span>Settings</span></button>
       </nav>
@@ -409,7 +408,7 @@ function showScreen(id){
   if(id==='add-med'&&!editingId)initAddMedForm();
 }
 function showOnboarding(){document.getElementById('user-name-input').value='';document.getElementById('avatar-preview').style.display='none';document.getElementById('avatar-placeholder').style.display='';showScreen('onboarding')}
-function switchTab(tab){document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',['home','schedule','history','settings'][i]===tab));showScreen(tab==='schedule'?'home':tab)}
+function switchTab(tab){document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',['home','history','settings'][i]===tab));showScreen(tab)}
 
 function handleAvatarUpload(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{state.user.avatar=ev.target.result;const p=document.getElementById('avatar-preview');p.src=ev.target.result;p.style.display='block';document.getElementById('avatar-placeholder').style.display='none'};r.readAsDataURL(file)}
 function finishOnboarding(){const name=document.getElementById('user-name-input').value.trim();if(!name){showToast('Please enter your name');return}state.user.name=name;save();showScreen('home')}
@@ -555,13 +554,44 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 document.getElementById('fab-btn').addEventListener('click',()=>{initAddMedForm();showScreen('add-med')});
 
-// PWA Install
+// PWA Install — show banner on load if not already installed
 let deferredInstallPrompt=null;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;showInstallBanner()});
-window.addEventListener('appinstalled',()=>{hideInstallBanner();deferredInstallPrompt=null;showToast('MedTrack installed! 🎉')});
-function showInstallBanner(){if(window.matchMedia('(display-mode: standalone)').matches)return;const b=document.getElementById('install-banner');if(b)b.style.display='flex'}
-function hideInstallBanner(){const b=document.getElementById('install-banner');if(b)b.style.display='none'}
-async function triggerInstall(){if(!deferredInstallPrompt){showToast('Use browser menu → "Add to Home Screen"');return}deferredInstallPrompt.prompt();const{outcome}=await deferredInstallPrompt.userChoice;if(outcome==='accepted')hideInstallBanner();deferredInstallPrompt=null}
+
+function isInstalled(){
+  return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+}
+function checkAndShowInstallBanner(){
+  if(isInstalled())return; // already installed, hide
+  if(localStorage.getItem('installBannerDismissed')==='1')return; // user dismissed
+  const b=document.getElementById('install-banner');
+  if(b)b.style.display='flex';
+}
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  checkAndShowInstallBanner();
+});
+window.addEventListener('appinstalled',()=>{
+  hideInstallBanner();
+  deferredInstallPrompt=null;
+  showToast('MedTrack installed! 🎉');
+});
+function showInstallBanner(){checkAndShowInstallBanner()}
+function hideInstallBanner(){
+  const b=document.getElementById('install-banner');
+  if(b)b.style.display='none';
+  localStorage.setItem('installBannerDismissed','1');
+}
+async function triggerInstall(){
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    const{outcome}=await deferredInstallPrompt.userChoice;
+    if(outcome==='accepted')hideInstallBanner();
+    deferredInstallPrompt=null;
+  } else {
+    showToast('Tap ⋮ menu → "Add to Home Screen"');
+  }
+}
 
 // Service Worker
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{})})}
@@ -572,6 +602,8 @@ setInterval(()=>{if(currentScreen==='home')renderHome()},60000);
 // Init
 load();
 if(state.user&&state.user.name){showScreen('home')}
+// Show install banner after a short delay (gives SW time to register)
+setTimeout(checkAndShowInstallBanner, 2000);
   </script>
 </body>
 </html>
