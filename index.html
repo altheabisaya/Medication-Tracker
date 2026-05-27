@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#2d7d6f" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MedTrack" />
+  <meta name="description" content="Your personal medication tracker" />
+  <meta name="application-name" content="MedTrack" />
+  <!-- Manifest — absolute path for Railway hosting -->
+  <link rel="manifest" href="/manifest.json" />
+  <!-- Icons — absolute paths -->
+  <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+  <title>MedTrack</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- SPLASH / ONBOARDING -->
+    <div id="splash-screen" class="screen active">
+      <div class="splash-content">
+        <div class="splash-logo">
+          <div class="logo-icon">💊</div>
+          <h1 class="logo-title">MedTrack</h1>
+          <p class="logo-sub">Never miss a dose</p>
+        </div>
+        <button class="btn-primary btn-full" onclick="showOnboarding()">Get Started</button>
+        <button class="btn-ghost btn-full" onclick="loadSampleData(); showScreen('home')">Demo Mode</button>
+      </div>
+    </div>
+
+    <!-- ONBOARDING -->
+    <div id="onboarding-screen" class="screen">
+      <div class="onboarding-inner">
+        <button class="btn-back" onclick="showScreen('splash')">← Back</button>
+        <h2 class="section-title" style="margin-top:1rem">What's your name?</h2>
+        <input type="text" id="user-name-input" class="input-field" placeholder="Your first name" />
+        <h2 class="section-title" style="margin-top:1.5rem">Profile photo (optional)</h2>
+        <div class="avatar-picker" onclick="document.getElementById('avatar-upload').click()">
+          <img id="avatar-preview" src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%" />
+          <span id="avatar-placeholder">📷</span>
+        </div>
+        <input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)" />
+        <button class="btn-primary btn-full" style="margin-top:2rem" onclick="finishOnboarding()">Continue →</button>
+      </div>
+    </div>
+
+    <!-- HOME -->
+    <div id="home-screen" class="screen">
+      <div class="home-inner">
+        <!-- Header -->
+        <header class="app-header">
+          <div class="header-left">
+            <div class="avatar-sm" id="header-avatar" onclick="showScreen('settings')">
+              <span id="header-avatar-emoji">👤</span>
+              <img id="header-avatar-img" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%" />
+            </div>
+            <div>
+              <p class="greeting-text" id="greeting-text">Good morning</p>
+              <p class="user-name-text" id="user-name-display">Margaret</p>
+            </div>
+          </div>
+          <button class="notif-btn" onclick="showScreen('history')">
+            <span>🔔</span>
+            <span class="notif-dot" id="notif-dot" style="display:none"></span>
+          </button>
+        </header>
+
+        <!-- Streak badges -->
+        <div class="badges-row">
+          <div class="badge badge-fire" id="streak-badge">🔥 <span id="streak-count">0</span> day streak</div>
+          <div class="badge badge-green" id="monthly-badge">📈 <span id="monthly-pct">0</span>% this month</div>
+        </div>
+
+        <!-- Progress card -->
+        <div class="progress-card">
+          <div class="progress-ring-wrap">
+            <svg class="progress-ring" viewBox="0 0 80 80">
+              <circle class="ring-bg" cx="40" cy="40" r="32" />
+              <circle class="ring-fill" id="ring-fill" cx="40" cy="40" r="32" />
+            </svg>
+            <div class="ring-center">
+              <span class="ring-num" id="ring-taken">0</span>
+              <span class="ring-denom" id="ring-total">/0</span>
+              <span class="ring-label">doses</span>
+            </div>
+          </div>
+          <div class="progress-info">
+            <p class="progress-label">Today's Progress</p>
+            <p class="progress-headline" id="progress-headline">Loading...</p>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+            </div>
+            <p class="progress-sub" id="progress-sub">0% adherence today</p>
+          </div>
+        </div>
+
+        <!-- Next dose card (shown when due) -->
+        <div class="next-dose-card" id="next-dose-card" style="display:none">
+          <div class="next-dose-header">
+            <span class="next-dose-label">⏰ Next Dose</span>
+            <span class="next-dose-due" id="next-dose-status">Due Now</span>
+          </div>
+          <div class="next-dose-body">
+            <div class="med-icon-sm" id="next-dose-icon">💊</div>
+            <div>
+              <p class="next-dose-name" id="next-dose-name">-</p>
+              <p class="next-dose-meta" id="next-dose-meta">-</p>
+            </div>
+          </div>
+          <div class="next-dose-actions">
+            <button class="btn-primary btn-take" id="next-dose-take-btn" onclick="takeNextDose()">✓ Mark as Taken</button>
+            <button class="btn-snooze" onclick="snoozeNextDose()">⏰ Snooze</button>
+          </div>
+        </div>
+
+        <!-- Today's Schedule -->
+        <div class="schedule-header">
+          <h2 class="section-title">Today's Schedule</h2>
+          <span class="schedule-date" id="schedule-date">May 26</span>
+        </div>
+
+        <div class="med-list" id="med-list">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="empty-state" id="empty-state" style="display:none">
+          <div class="empty-icon">💊</div>
+          <p>No medications scheduled.</p>
+          <p style="font-size:.85rem;color:var(--text-muted)">Add your first medication below!</p>
+        </div>
+      </div>
+
+      <!-- FAB -->
+      <button class="fab" onclick="showScreen('add-med')" aria-label="Add medication">+</button>
+
+      <!-- Bottom nav -->
+      <nav class="bottom-nav">
+        <button class="nav-btn active" onclick="switchTab('home')">
+          <span>🏠</span><span>Home</span>
+        </button>
+        <button class="nav-btn" onclick="switchTab('schedule')">
+          <span>📅</span><span>Schedule</span>
+        </button>
+        <button class="nav-btn" onclick="switchTab('history')">
+          <span>📊</span><span>History</span>
+        </button>
+        <button class="nav-btn" onclick="switchTab('settings')">
+          <span>⚙️</span><span>Settings</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- ADD MEDICATION -->
+    <div id="add-med-screen" class="screen">
+      <div class="modal-inner">
+        <div class="modal-header">
+          <button class="btn-back" onclick="showScreen('home')">← Back</button>
+          <h2 class="modal-title" id="add-med-title">Add Medication</h2>
+        </div>
+
+        <label class="field-label">Medication Name *</label>
+        <input type="text" id="med-name" class="input-field" placeholder="e.g. Metformin" />
+
+        <label class="field-label">Dosage *</label>
+        <input type="text" id="med-dose" class="input-field" placeholder="e.g. 500 mg" />
+
+        <label class="field-label">Icon</label>
+        <div class="icon-picker" id="icon-picker">
+          <span class="icon-option selected" data-icon="💊">💊</span>
+          <span class="icon-option" data-icon="💉">💉</span>
+          <span class="icon-option" data-icon="🩺">🩺</span>
+          <span class="icon-option" data-icon="☀️">☀️</span>
+          <span class="icon-option" data-icon="🫀">🫀</span>
+          <span class="icon-option" data-icon="🩸">🩸</span>
+          <span class="icon-option" data-icon="🌿">🌿</span>
+          <span class="icon-option" data-icon="⚡">⚡</span>
+          <span class="icon-option" data-icon="🔵">🔵</span>
+          <span class="icon-option" data-icon="🟡">🟡</span>
+          <span class="icon-option" data-icon="🔴">🔴</span>
+          <span class="icon-option" data-icon="🟢">🟢</span>
+        </div>
+
+        <label class="field-label">Schedule Times *</label>
+        <div id="times-list"></div>
+        <button class="btn-ghost-sm" onclick="addTimeSlot()">+ Add Time</button>
+
+        <label class="field-label" style="margin-top:1rem">Days</label>
+        <div class="days-picker" id="days-picker">
+          <button class="day-btn selected" data-day="0">S</button>
+          <button class="day-btn selected" data-day="1">M</button>
+          <button class="day-btn selected" data-day="2">T</button>
+          <button class="day-btn selected" data-day="3">W</button>
+          <button class="day-btn selected" data-day="4">T</button>
+          <button class="day-btn selected" data-day="5">F</button>
+          <button class="day-btn selected" data-day="6">S</button>
+        </div>
+
+        <label class="field-label">Notes (optional)</label>
+        <input type="text" id="med-notes" class="input-field" placeholder="e.g. Take with food" />
+
+        <button class="btn-primary btn-full" style="margin-top:1.5rem;margin-bottom:2rem" onclick="saveMedication()" id="save-med-btn">Save Medication</button>
+      </div>
+    </div>
+
+    <!-- HISTORY SCREEN -->
+    <div id="history-screen" class="screen">
+      <div class="modal-inner">
+        <div class="modal-header">
+          <button class="btn-back" onclick="showScreen('home')">← Back</button>
+          <h2 class="modal-title">History & Stats</h2>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-num" id="stat-streak">0</div>
+            <div class="stat-lbl">Day Streak 🔥</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="stat-monthly">0%</div>
+            <div class="stat-lbl">This Month</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="stat-total-taken">0</div>
+            <div class="stat-lbl">Total Taken</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="stat-total-missed">0</div>
+            <div class="stat-lbl">Total Missed</div>
+          </div>
+        </div>
+
+        <h3 class="section-title" style="margin-top:1.5rem">Recent History</h3>
+        <div id="history-list">
+          <p style="color:var(--text-muted);text-align:center;padding:2rem">No history yet</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS SCREEN -->
+    <div id="settings-screen" class="screen">
+      <div class="modal-inner">
+        <div class="modal-header">
+          <button class="btn-back" onclick="showScreen('home')">← Back</button>
+          <h2 class="modal-title">Settings</h2>
+        </div>
+
+        <div class="settings-avatar-section">
+          <div class="avatar-lg" onclick="document.getElementById('settings-avatar-upload').click()">
+            <span id="settings-avatar-emoji">👤</span>
+            <img id="settings-avatar-img" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%" />
+          </div>
+          <input type="file" id="settings-avatar-upload" accept="image/*" style="display:none" onchange="handleSettingsAvatar(event)" />
+          <p class="settings-avatar-hint">Tap to change photo</p>
+        </div>
+
+        <label class="field-label">Your Name</label>
+        <input type="text" id="settings-name" class="input-field" />
+        <button class="btn-primary" style="margin-top:.75rem;margin-bottom:1.5rem" onclick="saveSettings()">Save Changes</button>
+
+        <h3 class="section-title">My Medications</h3>
+        <div id="settings-med-list"></div>
+
+        <button class="btn-danger btn-full" style="margin-top:2rem;margin-bottom:1rem" onclick="confirmReset()">Reset All Data</button>
+        <p style="text-align:center;color:var(--text-muted);font-size:.75rem;margin-bottom:2rem">MedTrack v1.0 · Made with ❤️</p>
+      </div>
+    </div>
+
+    <!-- INSTALL BANNER -->
+    <div id="install-banner" style="display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:white;border-top:2px solid var(--teal);padding:0.85rem 1.25rem;padding-bottom:calc(0.85rem + env(safe-area-inset-bottom,0px));z-index:300;align-items:center;gap:0.75rem;box-shadow:0 -4px 24px rgba(45,125,111,0.18);">
+      <div style="font-size:1.75rem">💊</div>
+      <div style="flex:1">
+        <div style="font-size:0.88rem;font-weight:700;color:var(--text)">Install MedTrack</div>
+        <div style="font-size:0.75rem;color:var(--text-muted)">Add to home screen for quick access</div>
+      </div>
+      <button onclick="triggerInstall()" style="background:var(--teal);color:white;border:none;border-radius:10px;padding:0.5rem 1rem;font-family:var(--font);font-size:0.85rem;font-weight:700;cursor:pointer;">Install</button>
+      <button onclick="hideInstallBanner()" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;padding:0.25rem;">×</button>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
